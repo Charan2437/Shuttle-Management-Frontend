@@ -89,9 +89,13 @@ export default function BookingManagement() {
 
   const handleStatusChange = async (bookingId: string, newStatus: string) => {
     try {
+      const jwt = localStorage.getItem("jwt");
       const res = await fetch(`http://localhost:8081/api/admin/bookings/${bookingId}/status`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}),
+        },
         body: JSON.stringify({ status: newStatus }),
       })
       if (!res.ok) throw new Error()

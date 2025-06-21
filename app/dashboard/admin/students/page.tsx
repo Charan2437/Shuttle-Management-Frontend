@@ -41,24 +41,29 @@ export default function StudentManagement() {
   // Fetch students and stats
   useEffect(() => {
     const jwt = localStorage.getItem("jwt");
-    fetch("http://localhost:8081/api/admin/students", jwt ? { headers: { Authorization: `Bearer ${jwt}` } } : undefined)
-      .then((res) => res.json())
-      .then((data) => setStudents(data))
-      .catch(() => {
-        toast({
-          variant: "destructive",
-          title: "Failed to load students",
-          description: "Could not fetch students from the server.",
+    // Fetch both students and stats in parallel
+    Promise.all([
+      fetch("http://localhost:8081/api/admin/students", jwt ? { headers: { Authorization: `Bearer ${jwt}` } } : undefined).then((res) => res.json()),
+      fetch("http://localhost:8081/api/admin/students/stats", jwt ? { headers: { Authorization: `Bearer ${jwt}` } } : undefined).then((res) => res.json()),
+    ])
+      .then(([studentsData, statsData]) => {
+        const statsMap = new Map(statsData.map((s: any) => [s.studentId, s]))
+        const merged = studentsData.map((student: any) => {
+          const stat = statsMap.get(student.studentId);
+          return {
+            ...student,
+            totalRides: (stat as any)?.totalRides ?? 0,
+            totalSpent: (stat as any)?.totalSpent ?? 0,
+          }
         })
+        setStudents(merged)
+        setStudentStats(statsData)
       })
-    fetch("http://localhost:8081/api/admin/students/stats", jwt ? { headers: { Authorization: `Bearer ${jwt}` } } : undefined)
-      .then((res) => res.json())
-      .then((data) => setStudentStats(data))
       .catch(() => {
         toast({
           variant: "destructive",
-          title: "Failed to load stats",
-          description: "Could not fetch student stats from the server.",
+          title: "Failed to load students or stats",
+          description: "Could not fetch students or stats from the server.",
         })
       })
   }, [])
@@ -321,7 +326,7 @@ export default function StudentManagement() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddStudentOpen(false)} disabled={addStudentLoading}>Cancel</Button>
-                <Button onClick={handleAddStudent} loading={addStudentLoading} disabled={addStudentLoading}>
+                <Button onClick={handleAddStudent} disabled={addStudentLoading}>
                   Add Student
                 </Button>
               </DialogFooter>
