@@ -113,6 +113,16 @@ Below are screenshots of the admin-facing pages, in order:
 ![Admin 10](public/admin/ad10.png)
 ![Admin 11](public/admin/ad11.png)
 
+---
+
+## Responsive Design
+
+Below are screenshots demonstrating the responsive/mobile layouts:
+
+![Responsive 1](public/responsive/rp1.png)
+![Responsive 2](public/responsive/rp2.png)
+
+---
 
 ## Scripts
 
