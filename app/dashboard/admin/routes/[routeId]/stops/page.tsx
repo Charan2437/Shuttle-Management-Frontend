@@ -1,3 +1,17 @@
+// Route Stops Management Page for Admin
+// --------------------------------------
+// This page allows admin users to manage the stops for a specific shuttle route.
+// Features include:
+// - Viewing and editing the list/order of stops for a route
+// - Adding, editing, and removing stops
+// - Drag-and-drop reordering of stops
+// - Displaying route summary (total stops, distance, time, status)
+// - Dialogs for adding new stops and editing stop details
+// - Toast notifications for user feedback
+//
+// Author: [Your Team/Company Name]
+// Date: [2025-06-21]
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -34,10 +48,9 @@ import {
   RouteIcon,
 } from "lucide-react"
 import type { Route, Stop } from "@/types"
-
-// Add this import at the top
 import { useToast } from "@/hooks/use-toast"
 
+// RouteStop interface represents a stop as part of a route, including order and travel details
 interface RouteStop {
   id: string
   stopId: string
@@ -47,11 +60,16 @@ interface RouteStop {
   stop: Stop
 }
 
+/**
+ * Main component for managing stops in a route.
+ * Handles data fetching, state management, and all user interactions.
+ */
 export default function RouteStopsManagement({ params }: { params: { routeId: string } }) {
   const router = useRouter()
   const { toast } = useToast()
   const routeId = params.routeId
 
+  // State variables for route, stops, dialogs, and form fields
   const [route, setRoute] = useState<Route | null>(null)
   const [routeStops, setRouteStops] = useState<RouteStop[]>([])
   const [allStops, setAllStops] = useState<Stop[]>([])
@@ -73,7 +91,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     distanceFromPrevious: ""
   })
 
-  // Load route and stops data
+  // Fetch route and all stops data on mount or when routeId changes
   useEffect(() => {
     const jwt = localStorage.getItem("jwt");
     Promise.all([
@@ -98,17 +116,22 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
       })
   }, [routeId])
 
-  // Filter to show only stops that are NOT already in the route
+  // Filter stops not already in the route
   const availableStops = allStops.filter(
     (stop) => !routeStops.some((routeStop) => routeStop.stopId === stop.id)
   )
 
+  // Filter available stops by search term
   const filteredAvailableStops = availableStops.filter(
     (stop) =>
       stop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       stop.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  /**
+   * Handles drag-and-drop reordering of route stops.
+   * Updates stop order and marks changes as unsaved.
+   */
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return
 
@@ -126,6 +149,10 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     setHasUnsavedChanges(true)
   }
 
+  /**
+   * Adds a selected stop to the route with optional travel time and distance.
+   * Shows a toast on success and resets the form.
+   */
   const handleAddStop = () => {
     if (!selectedStopId) return
 
@@ -144,26 +171,32 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     setRouteStops([...routeStops, newRouteStop])
     setHasUnsavedChanges(true)
 
-    // Show success toast
     toast({
       variant: "success",
       title: "Stop Added",
       description: `${selectedStop.name} has been added to the route.`,
     })
 
-    // Reset form
     setSelectedStopId("")
     setTravelTime("")
     setDistance("")
     setIsAddStopDialogOpen(false)
   }
 
+  /**
+   * Opens the edit dialog for a route stop.
+   * Pre-fills travel time and distance fields.
+   */
   const handleEditStop = (routeStop: RouteStop) => {
     setEditingStop(routeStop)
     setTravelTime(routeStop.estimatedTravelTime?.toString() || "")
     setDistance(routeStop.distanceFromPrevious?.toString() || "")
   }
 
+  /**
+   * Updates the details of a stop in the route.
+   * Shows a toast on success and resets the edit form.
+   */
   const handleUpdateStop = () => {
     if (!editingStop) return
 
@@ -180,7 +213,6 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     setRouteStops(updatedRouteStops)
     setHasUnsavedChanges(true)
 
-    // Show success toast
     toast({
       variant: "success",
       title: "Stop Updated",
@@ -192,11 +224,14 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     setDistance("")
   }
 
+  /**
+   * Removes a stop from the route and updates the order.
+   * Shows a toast on removal.
+   */
   const handleRemoveStop = (routeStopId: string) => {
     const routeStop = routeStops.find((rs) => rs.id === routeStopId)
     if (!routeStop) return
 
-    // Remove from route stops
     const updatedRouteStops = routeStops
       .filter((rs) => rs.id !== routeStopId)
       .map((rs, index) => ({ ...rs, stopOrder: index + 1 }))
@@ -204,7 +239,6 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     setRouteStops(updatedRouteStops)
     setHasUnsavedChanges(true)
 
-    // Show info toast
     toast({
       variant: "default",
       title: "Stop Removed",
@@ -212,12 +246,15 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     })
   }
 
+  /**
+   * Saves the current route stops (stub for API integration).
+   * Shows a toast on success.
+   */
   const handleSaveChanges = () => {
     // In a real app, this would make an API call to save the route stops
     console.log("Saving route stops:", routeStops)
     setHasUnsavedChanges(false)
 
-    // Show success toast instead of alert
     toast({
       variant: "success",
       title: "Changes Saved",
@@ -225,28 +262,36 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     })
   }
 
+  /**
+   * Discards unsaved changes and reloads the page.
+   * Shows a warning toast.
+   */
   const handleDiscardChanges = () => {
-    // Show confirmation toast
     toast({
       variant: "warning",
       title: "Changes Discarded",
       description: "All unsaved changes have been reverted.",
     })
-
-    // Reload the original data
     setTimeout(() => {
       window.location.reload()
     }, 1000)
   }
 
+  /**
+   * Calculates the total distance of the route.
+   */
   const getTotalDistance = () => {
     return routeStops.reduce((total, stop) => total + (stop.distanceFromPrevious || 0), 0)
   }
 
+  /**
+   * Calculates the total estimated travel time for the route.
+   */
   const getTotalTime = () => {
     return routeStops.reduce((total, stop) => total + (stop.estimatedTravelTime || 0), 0)
   }
 
+  // Show loading state if route is not loaded
   if (!route) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -263,9 +308,10 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
     )
   }
 
+  // Main render: route summary, stop management table, dialogs
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header: route info and actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" onClick={() => router.back()}>
@@ -293,6 +339,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
               </Button>
             </>
           )}
+          {/* Add Stop Dialog Trigger */}
           <Dialog open={isAddStopDialogOpen} onOpenChange={setIsAddStopDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90">
@@ -300,12 +347,14 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
                 Add Stop
               </Button>
             </DialogTrigger>
+            {/* Add Stop Dialog Content */}
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Stop to Route</DialogTitle>
                 <DialogDescription>Select a stop and configure its timing details.</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                {/* Search and select available stops */}
                 <div className="space-y-2">
                   <Label>Search Available Stops</Label>
                   <div className="relative">
@@ -347,6 +396,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
                   </Select>
                 </div>
 
+                {/* Travel time and distance fields */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Travel Time (minutes)</Label>
@@ -382,8 +432,9 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
         </div>
       </div>
 
-      {/* Route Summary */}
+      {/* Route Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
+        {/* Total Stops */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Stops</CardTitle>
@@ -394,7 +445,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
             <p className="text-xs text-muted-foreground">Stops on this route</p>
           </CardContent>
         </Card>
-
+        {/* Total Distance */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Distance</CardTitle>
@@ -405,7 +456,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
             <p className="text-xs text-muted-foreground">Estimated total distance</p>
           </CardContent>
         </Card>
-
+        {/* Total Time */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Time</CardTitle>
@@ -416,7 +467,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
             <p className="text-xs text-muted-foreground">Estimated travel time</p>
           </CardContent>
         </Card>
-
+        {/* Route Status */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Route Status</CardTitle>
@@ -444,7 +495,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
         </Card>
       )}
 
-      {/* Route Stops Management */}
+      {/* Route Stops Management Table */}
       <Card>
         <CardHeader>
           <CardTitle>Route Stops ({routeStops.length})</CardTitle>
@@ -486,12 +537,14 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
                               </TableCell>
                               <TableCell>
                                 <div className="space-y-1">
+                                  {/* Stop name and description */}
                                   <div className="font-medium">{routeStop.name}</div>
                                   <div className="text-sm text-gray-500">{routeStop.description}</div>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <div className="text-sm font-mono">
+                                  {/* Show coordinates if available */}
                                   {typeof routeStop.latitude === "number" && typeof routeStop.longitude === "number"
                                     ? `${routeStop.latitude.toFixed(4)}, ${routeStop.longitude.toFixed(4)}`
                                     : <span className="text-red-500">No coordinates</span>
@@ -512,6 +565,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end space-x-2">
+                                  {/* Edit and Remove actions */}
                                   <Button variant="ghost" size="sm" onClick={() => handleEditStop(routeStop)}>
                                     <Edit className="h-4 w-4" />
                                   </Button>
@@ -532,6 +586,7 @@ export default function RouteStopsManagement({ params }: { params: { routeId: st
             </Droppable>
           </DragDropContext>
 
+          {/* Empty state if no stops */}
           {routeStops.length === 0 && (
             <div className="text-center py-12">
               <MapPin className="mx-auto h-12 w-12 text-gray-400" />

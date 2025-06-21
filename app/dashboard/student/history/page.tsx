@@ -1,3 +1,16 @@
+// Student Trip History Page
+// ------------------------
+// This page allows students to view, filter, and export their shuttle trip history.
+// Features:
+// - Fetches trip history, analytics, and frequent routes from the backend API
+// - Provides search and filter options for trip records
+// - Displays analytics and usage patterns
+// - Allows CSV export of filtered trip data
+// - UI/UX optimized for clarity and usability
+//
+// Author: [Your Team/Company Name]
+// Date: [2025-06-21]
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -42,7 +55,12 @@ interface TripHistory {
   }
 }
 
+/**
+ * Main component for displaying and managing student trip history.
+ * Handles data fetching, filtering, analytics, and export functionality.
+ */
 export default function TripHistory() {
+  // State variables for search/filter, trip data, analytics, and UI state
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [routeFilter, setRouteFilter] = useState("all")
@@ -50,6 +68,7 @@ export default function TripHistory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch trip history on mount
   useEffect(() => {
     async function fetchTrips() {
       setLoading(true)
@@ -104,6 +123,7 @@ export default function TripHistory() {
     fetchTrips()
   }, [])
 
+  // Fetch frequent routes and monthly stats on mount
   const [frequentRoutes, setFrequentRoutes] = useState<any[]>([])
   const [monthlyStats, setMonthlyStats] = useState<any>(null)
 
@@ -144,6 +164,7 @@ export default function TripHistory() {
     fetchAnalytics()
   }, [])
 
+  // Fetch travel analytics on mount
   const [travelAnalytics, setTravelAnalytics] = useState<any | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
@@ -187,6 +208,7 @@ export default function TripHistory() {
     return matchesSearch && matchesStatus && matchesRoute
   })
 
+  // Helper to render status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -200,6 +222,7 @@ export default function TripHistory() {
     }
   }
 
+  // Helper to render star rating
   const renderStars = (rating?: number) => {
     if (!rating) return null
     return (
@@ -212,6 +235,53 @@ export default function TripHistory() {
         ))}
       </div>
     )
+  }
+
+  // Export filtered trip history as CSV
+  const handleExportHistory = () => {
+    if (!filteredTrips.length) {
+      alert("No trips to export.")
+      return
+    }
+    const headers = [
+      "Booking Reference",
+      "Route",
+      "From",
+      "To",
+      "Date",
+      "Departure Time",
+      "Arrival Time",
+      "Points Deducted",
+      "Status",
+      "Transfer Required",
+      "Transfer Details"
+    ]
+    const rows = filteredTrips.map((trip) => [
+      trip.bookingReference || trip.id,
+      trip.route,
+      trip.fromStop,
+      trip.toStop,
+      formatDate(trip.date),
+      formatTime(trip.departureTime),
+      formatTime(trip.arrivalTime),
+      trip.pointsDeducted,
+      trip.status,
+      trip.transferRequired ? "Yes" : "No",
+      Array.isArray(trip.transferDetails)
+        ? trip.transferDetails.map((td: any) => `${td.transferStop} (${td.waitTime} min)`).join("; ")
+        : trip.transferDetails?.transferStop
+          ? `${trip.transferDetails.transferStop} (${trip.transferDetails.waitTime} min)`
+          : ""
+    ])
+    const csvContent = [headers, ...rows].map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `trip-history-${Date.now()}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   return (
@@ -231,7 +301,7 @@ export default function TripHistory() {
             <h1 className="text-2xl font-bold text-gray-900">Trip History</h1>
             <p className="text-gray-600">View your past journeys and travel patterns</p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportHistory}>
             <Download className="mr-2 h-4 w-4" />
             Export History
           </Button>
@@ -420,52 +490,44 @@ export default function TripHistory() {
                         </div>
                       </div>
 
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">From:</span>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-row items-center text-sm">
+                            <span className="text-gray-600 w-28">From:</span>
                             <span className="font-medium">{trip.fromStop}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">To:</span>
+                          <div className="flex flex-row items-center text-sm">
+                            <span className="text-gray-600 w-28">To:</span>
                             <span className="font-medium">{trip.toStop}</span>
                           </div>
                           {trip.transferDetails && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Transfer at:</span>
+                            <div className="flex flex-row items-center text-sm">
+                              <span className="text-gray-600 w-28">Transfer at:</span>
                               <span className="font-medium">{trip.transferDetails.transferStop}</span>
                             </div>
                           )}
                         </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Departure:</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex flex-row items-center text-sm">
+                            <span className="text-gray-600 w-28">Departure:</span>
                             <span className="font-medium">{formatTime(trip.departureTime)}</span>
                           </div>
                           {trip.status === "completed" && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Arrival:</span>
+                            <div className="flex flex-row items-center text-sm">
+                              <span className="text-gray-600 w-28">Arrival:</span>
                               <span className="font-medium">{formatTime(trip.arrivalTime)}</span>
                             </div>
                           )}
                           {trip.rating && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Rating:</span>
+                            <div className="flex flex-row items-center text-sm">
+                              <span className="text-gray-600 w-28">Rating:</span>
                               {renderStars(trip.rating)}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {trip.transferDetails && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                          <div className="text-sm text-yellow-800">
-                            Transfer journey with {trip.transferDetails.waitTime} min wait time at{" "}
-                            {trip.transferDetails.transferStop}
-                          </div>
-                        </div>
-                      )}
+                      
                     </div>
                   ))}
 

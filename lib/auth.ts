@@ -3,15 +3,12 @@ import { mockStudents } from "@/lib/data/static-data"
 
 // Get the correct URL based on environment
 const getBaseUrl = () => {
-  // In v0 preview, use the current origin
+
   if (typeof window !== "undefined") {
     return window.location.origin
   }
 
-  // For server-side, try to detect the environment
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`
-  }
+
 
   if (process.env.NEXTAUTH_URL) {
     return process.env.NEXTAUTH_URL
@@ -108,6 +105,6 @@ export const authOptions: any = {
   },
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET || "development-secret-key-change-in-production",
-  // Don't set a fixed URL, let NextAuth auto-detect in v0 preview
+
   url: undefined,
 }
